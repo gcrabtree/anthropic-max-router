@@ -15,11 +15,19 @@
 
 ---
 
+## About This Repository
+
+This repository provides **technical documentation and a proof-of-concept implementation** for using Anthropic's Claude MAX subscription plans with your own code.
+
+Claude MAX plans ($100/month or $200/month) provide flat-rate billing for high-volume API usage. This repo explains how to authenticate using OAuth and make API requests that Anthropic accepts as coming from authorized coding tools.
+
+**Special thanks to [OpenCode](https://github.com/sst/opencode)** - studying its OAuth implementation made this project possible.
+
+---
+
 > **⚠️ EDUCATIONAL AND ENTERTAINMENT PURPOSES ONLY**
 >
 > This project is provided for educational, research, and entertainment purposes only. It is not affiliated with, endorsed by, or sponsored by Anthropic PBC. Use of this software is at your own risk. The authors and contributors make no warranties and accept no liability for any damages or issues arising from use of this code. Users are responsible for ensuring their use complies with Anthropic's Terms of Service and all applicable laws. This software is provided "as-is" without any express or implied warranties.
-
-TypeScript proof-of-concept demonstrating Anthropic Claude MAX plan OAuth authentication.
 
 ## Requirements
 
