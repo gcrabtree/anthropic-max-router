@@ -15,292 +15,53 @@
 
 ---
 
-> **✅ Verified Working**: Tested and confirmed as of November 1st, 2025
-
 > **⚠️ EDUCATIONAL AND ENTERTAINMENT PURPOSES ONLY**
 >
 > This project is provided for educational, research, and entertainment purposes only. It is not affiliated with, endorsed by, or sponsored by Anthropic PBC. Use of this software is at your own risk. The authors and contributors make no warranties and accept no liability for any damages or issues arising from use of this code. Users are responsible for ensuring their use complies with Anthropic's Terms of Service and all applicable laws. This software is provided "as-is" without any express or implied warranties.
 
-A complete TypeScript proof-of-concept demonstrating how to use Anthropic's Claude MAX subscription ($100/month or $200/month tiers) for **flat-rate billing** instead of pay-per-token API charges.
+TypeScript proof-of-concept demonstrating Anthropic Claude MAX plan OAuth authentication.
 
-## What This Does
+## Requirements
 
-This project shows how to:
-- ✅ Authenticate with Anthropic using OAuth (MAX plan)
-- ✅ Access premium models (Sonnet 4.5, Opus) with flat-rate billing
-- ✅ Properly format requests to satisfy Anthropic's validation
-- ✅ Manage token lifecycle (refresh, expiration)
-- ✅ Build applications that leverage unlimited MAX plan usage
-
-## Prerequisites
-
-1. **Claude MAX Subscription** ($100/month or $200/month from [claude.ai](https://claude.ai))
-   - NOT Claude Pro ($20/month) - that's different
-   - MAX plan includes high-volume API inference with flat-rate billing
-   - $100/month tier: 5x usage vs Pro | $200/month tier: 20x usage vs Pro
-2. **Node.js** 18 or higher
-3. **npm** or **yarn**
+- **Claude MAX Subscription** from [claude.ai](https://claude.ai)
+- **Node.js** 18+
 
 ## Quick Start
 
-### 1. Install Dependencies
-
 ```bash
 npm install
-```
-
-### 2. Run the CLI
-
-```bash
 npm start
 ```
 
-**That's it!** The interactive CLI handles everything:
-
-1. Select option 1 to authenticate
-2. Visit the authorization URL in your browser
-3. Authorize with your MAX plan account
-4. Copy the code#state from the redirect page
-5. Paste it into the CLI
-
-**Menu Options:**
-- **Option 1:** Authenticate with Anthropic MAX Plan
-- **Option 2:** Refresh Token
-- **Option 3:** Send Chat Message
-- **Option 4:** Logout (Delete Tokens)
-- **Option 5:** Proof of MAX Plan (Validation Test)
-- **Option 6:** Exit
+Select option 1 to authenticate, visit the authorization URL, and paste the `code#state` when prompted.
 
 ## Project Structure
 
 ```
-anthropic-oauth-max-plan/
-├── src/
-│   ├── cli.ts               # Interactive CLI (entry point)
-│   ├── oauth.ts             # OAuth flow implementation
-│   ├── client.ts            # Anthropic API client
-│   ├── token-manager.ts     # Token storage and refresh
-│   └── types.ts             # TypeScript type definitions
-├── assets/
-│   └── screenshot.png       # CLI screenshot
-├── ANTHROPIC-MAX-PLAN-IMPLEMENTATION-GUIDE.md  # Detailed technical docs
-├── package.json
-└── README.md
+src/
+├── cli.ts               # Interactive CLI (entry point)
+├── oauth.ts             # OAuth PKCE flow implementation
+├── client.ts            # API client with validation
+├── token-manager.ts     # Token storage and refresh
+└── types.ts             # TypeScript definitions
 ```
-
-## Usage
-
-### Basic Example
-
-```typescript
-import { getValidAccessToken, sendMessage } from './src/index.js';
-
-// Get access token (auto-refreshes if needed)
-const accessToken = await getValidAccessToken();
-
-// Send a message
-const response = await sendMessage(
-  accessToken,
-  'Hello! Can you help me with TypeScript?',
-  {
-    model: 'claude-sonnet-4-5',
-    maxTokens: 1000
-  }
-);
-
-console.log(response);
-```
-
-### Advanced Example with Custom System Prompt
-
-```typescript
-import { getValidAccessToken, sendMessage } from './src/index.js';
-
-const accessToken = await getValidAccessToken();
-
-const response = await sendMessage(
-  accessToken,
-  'Write a function to calculate fibonacci numbers',
-  {
-    model: 'claude-sonnet-4-5',
-    maxTokens: 2000,
-    systemPrompt: 'You are an expert TypeScript developer. Always include type annotations and JSDoc comments.'
-  }
-);
-
-console.log(response);
-```
-
-### Using the Full API Client
-
-```typescript
-import { getValidAccessToken, makeAnthropicRequest } from './src/index.js';
-
-const accessToken = await getValidAccessToken();
-
-const response = await makeAnthropicRequest(accessToken, {
-  model: 'claude-sonnet-4-5',
-  max_tokens: 4000,
-  messages: [
-    {
-      role: 'user',
-      content: 'Explain how OAuth works'
-    }
-  ]
-  // System prompt and tools are automatically added
-});
-
-console.log(response.content);
-```
-
-## How It Works
-
-### The Secret: Required System Prompt
-
-Anthropic validates OAuth requests to ensure they come from legitimate coding tools. The validation requires:
-
-1. **Exact system prompt** (MUST be first element):
-   ```typescript
-   {
-     type: 'text',
-     text: 'You are Claude Code, Anthropic\'s official CLI for Claude.'
-   }
-   ```
-
-2. **At least one tool** in the tools array
-3. **Special headers** including `anthropic-beta: oauth-2025-04-20,...`
-
-This implementation **automatically handles all requirements** - you just make requests!
-
-### What Gets Added Automatically
-
-When you use `sendMessage()` or `makeAnthropicRequest()`, the client automatically:
-
-✅ Prepends required "Claude Code" system prompt
-✅ Adds default bash tool if no tools provided
-✅ Sets correct headers and API version
-✅ Handles token refresh if expired
-
-Your custom system prompts and tools are **preserved** - they're added AFTER the required prompt.
-
-## Token Management
-
-### Token File Format
-
-Tokens are saved to `.oauth-tokens.json`:
-
-```json
-{
-  "access_token": "sk-ant-oat01-...",
-  "refresh_token": "sk-ant-ort01-...",
-  "expires_in": 28800,
-  "token_type": "Bearer",
-  "scope": "user:inference user:profile",
-  "expires_at": 1730480766268,
-  "created_at": "2025-11-01T17:56:46.268Z"
-}
-```
-
-⚠️ **NEVER commit this file to git!** (Already in `.gitignore`)
-
-### Auto-Refresh
-
-The `getValidAccessToken()` function automatically:
-- Checks if token is expired (with 5 minute buffer)
-- Refreshes using refresh token if needed
-- Saves new tokens to file
-- Returns valid access token
-
-```typescript
-// Always use this - handles refresh automatically
-const accessToken = await getValidAccessToken();
-```
-
-## Available Models
-
-With MAX plan OAuth, you can access:
-
-- ✅ `claude-sonnet-4-5` (recommended, latest)
-- ✅ `claude-opus-4-5` (when available)
-- ✅ `claude-haiku-4-5-20251001`
-
-All billed at **$200/month flat rate** - no per-token charges!
-
-## Troubleshooting
-
-### "No tokens found"
-
-Run `npm start` and select option 1 to authenticate.
-
-### "This credential is only authorized for use with Claude Code"
-
-This means the required system prompt or tools are missing. If you're using the provided client functions, this should never happen (they add requirements automatically).
-
-If you're making raw requests, ensure:
-1. System prompt starts with exact phrase: `"You are Claude Code, Anthropic's official CLI for Claude."`
-2. At least one tool is defined
-3. Headers include `anthropic-beta: oauth-2025-04-20,...`
-
-See `ANTHROPIC-MAX-PLAN-IMPLEMENTATION-GUIDE.md` for detailed requirements.
-
-### "OAuth token has expired"
-
-Use `getValidAccessToken()` instead of reading tokens directly - it auto-refreshes.
-
-### Token refresh fails
-
-Run `npm start`, select option 4 to logout, then option 1 to re-authenticate.
-
-## Security Best Practices
-
-1. ✅ Never commit `.oauth-tokens.json` to git
-2. ✅ Don't log full tokens (only show first few characters)
-3. ✅ Use HTTPS for all requests (default)
-4. ✅ Refresh tokens proactively (5 min buffer built-in)
-5. ✅ Store tokens securely in production (use env vars or secrets manager)
-
-## Cost Savings
-
-**Traditional API Pricing** (example):
-- Claude Sonnet 4.5: $3 per million input tokens
-- Heavy usage: $500-1000+/month easily
-
-**MAX Plan OAuth**:
-- $100/month (5x Pro limits) or $200/month (20x Pro limits) flat rate
-- High-volume inference with predictable costs
-- Perfect for AI coding tools, chatbots, automation
-
-**Savings**: Potentially $200-1000+/month for high-volume applications compared to pay-per-token pricing!
-
-## Production Deployment
-
-For production, consider:
-
-1. **Environment variables** instead of token file:
-   ```typescript
-   const tokens = {
-     access_token: process.env.ANTHROPIC_ACCESS_TOKEN!,
-     refresh_token: process.env.ANTHROPIC_REFRESH_TOKEN!,
-     // ...
-   };
-   ```
-
-2. **Secrets manager** (AWS Secrets Manager, Vault, etc.)
-
-3. **Token refresh monitoring** with alerts
-
-4. **Rate limiting** even with flat-rate (be a good API citizen)
-
-5. **Error handling** and retry logic
 
 ## Technical Documentation
 
 See [`ANTHROPIC-MAX-PLAN-IMPLEMENTATION-GUIDE.md`](./ANTHROPIC-MAX-PLAN-IMPLEMENTATION-GUIDE.md) for:
-- Detailed OAuth flow explanation
-- Complete API requirements
-- System prompt validation test results
-- Router/proxy implementation patterns
-- Security considerations
+- Complete OAuth flow details
+- System prompt validation requirements
+- API request format
+- Token management
+- Implementation patterns
+
+## Troubleshooting
+
+**"No tokens found"** → Run `npm start`, select option 1
+
+**"This credential is only authorized for use with Claude Code"** → See implementation guide for system prompt requirements
+
+**Token refresh fails** → Select option 4 (logout), then option 1 (re-authenticate)
 
 ## Author
 
@@ -312,19 +73,8 @@ See [`ANTHROPIC-MAX-PLAN-IMPLEMENTATION-GUIDE.md`](./ANTHROPIC-MAX-PLAN-IMPLEMEN
 
 MIT
 
-## Contributing
-
-This is a proof-of-concept demonstration. Feel free to:
-- Fork and adapt for your use case
-- Report issues or improvements
-- Use as reference for your own implementation
-
 ## Disclaimer
 
-This project demonstrates how to use Anthropic's official OAuth flow with MAX subscription. All authentication is done through Anthropic's official endpoints. This is not a hack or workaround - it's using the same OAuth flow as Claude Code (OpenCode).
+This demonstrates Anthropic's official OAuth flow with MAX subscription. All authentication uses Anthropic's official endpoints. This is the same OAuth flow as Claude Code.
 
-Anthropic may change their OAuth requirements at any time. This was tested and working as of November 1st, 2025.
-
----
-
-**Built with ❤️ for the AI developer community**
+Anthropic may change OAuth requirements at any time. Tested and verified working as of November 1st, 2025.
