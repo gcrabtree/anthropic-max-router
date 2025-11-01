@@ -32,10 +32,6 @@ function question(prompt: string): Promise<string> {
   });
 }
 
-function clearScreen() {
-  console.log('\x1Bc'); // Clear screen
-}
-
 async function showAuthStatus() {
   console.log('\n' + '='.repeat(70));
   console.log('AUTHENTICATION STATUS');
@@ -221,8 +217,6 @@ async function showMenu(): Promise<string> {
 }
 
 async function main() {
-  clearScreen();
-
   // ASCII Banner
   console.log('\n');
   console.log('███╗   ███╗ █████╗ ██╗  ██╗    ██████╗ ██╗      █████╗ ███╗   ██╗');
@@ -242,22 +236,18 @@ async function main() {
     switch (choice.trim()) {
       case '1':
         await handleAuthenticate();
-        clearScreen();
         break;
 
       case '2':
         await handleRefreshToken();
-        clearScreen();
         break;
 
       case '3':
         await handleSendMessage();
-        clearScreen();
         break;
 
       case '4':
         await handleLogout();
-        clearScreen();
         break;
 
       case '5':
@@ -268,7 +258,6 @@ async function main() {
       default:
         console.log('\n❌ Invalid option. Please select 1-5.\n');
         await question('Press ENTER to continue...');
-        clearScreen();
     }
   }
 }
