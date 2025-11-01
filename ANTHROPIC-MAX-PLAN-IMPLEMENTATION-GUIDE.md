@@ -60,7 +60,10 @@ const code_challenge = crypto.createHash('sha256')
   .update(code_verifier)
   .digest('base64url');
 
-// 2. Build authorization URL
+// 2. Generate state for CSRF protection
+const state = crypto.randomBytes(32).toString('base64url');
+
+// 3. Build authorization URL
 const authUrl = new URL('https://claude.ai/oauth/authorize');
 authUrl.searchParams.set('client_id', OAUTH_CONFIG.client_id);
 authUrl.searchParams.set('redirect_uri', OAUTH_CONFIG.redirect_uri);
@@ -68,10 +71,12 @@ authUrl.searchParams.set('response_type', 'code');
 authUrl.searchParams.set('scope', OAUTH_CONFIG.scope);
 authUrl.searchParams.set('code_challenge', code_challenge);
 authUrl.searchParams.set('code_challenge_method', 'S256');
+authUrl.searchParams.set('state', state);  // Required for CSRF protection
 
-// 3. User visits authUrl and authorizes, receives code in callback
+// 4. User visits authUrl and authorizes, receives code and state in callback
+// IMPORTANT: Verify returned state matches the generated state before proceeding
 
-// 4. Exchange code for tokens
+// 5. Exchange code for tokens
 const tokenResponse = await fetch('https://console.anthropic.com/v1/oauth/token', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
