@@ -14,7 +14,6 @@
  */
 
 import crypto from 'crypto';
-import http from 'http';
 import { URL } from 'url';
 import type { OAuthTokens, OAuthConfig } from './types.js';
 
@@ -22,8 +21,8 @@ export const OAUTH_CONFIG: OAuthConfig = {
   client_id: '9d1c250a-e61b-44d9-88ed-5944d1962f5e',
   authorize_url: 'https://claude.ai/oauth/authorize',  // MAX mode
   token_url: 'https://console.anthropic.com/v1/oauth/token',
-  redirect_uri: 'http://localhost:8000/callback',
-  scope: 'user:inference user:profile'
+  redirect_uri: 'https://console.anthropic.com/oauth/code/callback',
+  scope: 'org:create_api_key user:profile user:inference'
 };
 
 /**
@@ -51,6 +50,7 @@ export function generateState(): string {
  */
 export function getAuthorizationUrl(codeChallenge: string, state: string): string {
   const url = new URL(OAUTH_CONFIG.authorize_url);
+  url.searchParams.set('code', 'true');  // Tell it to return code
   url.searchParams.set('client_id', OAUTH_CONFIG.client_id);
   url.searchParams.set('redirect_uri', OAUTH_CONFIG.redirect_uri);
   url.searchParams.set('response_type', 'code');
@@ -78,14 +78,22 @@ export async function exchangeCodeForTokens(
     code_verifier: codeVerifier
   });
 
+  // Debug logging
+  console.log('Token exchange request:');
+  console.log(`URL: ${OAUTH_CONFIG.token_url}`);
+  console.log(`Body: ${params.toString()}`);
+
   const response = await fetch(OAUTH_CONFIG.token_url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params.toString()
   });
 
+  console.log(`Response status: ${response.status}`);
+
   if (!response.ok) {
     const error = await response.text();
+    console.log(`Response body: ${error}`);
     throw new Error(`Token exchange failed: ${error}`);
   }
 
@@ -130,71 +138,60 @@ export async function refreshAccessToken(refreshToken: string): Promise<OAuthTok
 }
 
 /**
- * Start OAuth flow and wait for callback
+ * Start OAuth flow - user manually copies code from redirect
  */
-export function startOAuthFlow(): Promise<{ code: string; verifier: string }> {
+export async function startOAuthFlow(): Promise<{ code: string; verifier: string }> {
+  const { verifier, challenge } = generatePKCE();
+  const state = generateState();
+  const authUrl = getAuthorizationUrl(challenge, state);
+
+  console.log('\n🔐 Starting OAuth flow...\n');
+  console.log('Please visit this URL to authorize:\n');
+  console.log(authUrl);
+  console.log('\n' + '='.repeat(70));
+  console.log('After authorizing, you will be redirected to a page.');
+  console.log('Copy the ENTIRE URL from your browser address bar.');
+  console.log('It will look like: https://console.anthropic.com/oauth/code/callback?code=...&state=...');
+  console.log('='.repeat(70) + '\n');
+
+  // Import readline dynamically
+  const readline = await import('readline');
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
   return new Promise((resolve, reject) => {
-    const { verifier, challenge } = generatePKCE();
-    const state = generateState();
-    const authUrl = getAuthorizationUrl(challenge, state);
+    rl.question('Paste the redirect URL here: ', (input) => {
+      rl.close();
 
-    console.log('\n🔐 Starting OAuth flow...\n');
-    console.log('Please visit this URL to authorize:\n');
-    console.log(authUrl);
-    console.log('\nWaiting for callback...\n');
-
-    const server = http.createServer((req, res) => {
-      const url = new URL(req.url!, `http://localhost:8000`);
-
-      if (url.pathname === '/callback') {
+      try {
+        const url = new URL(input.trim());
         const code = url.searchParams.get('code');
         const returnedState = url.searchParams.get('state');
         const error = url.searchParams.get('error');
 
         if (error) {
-          res.writeHead(400, { 'Content-Type': 'text/html' });
-          res.end(`<h1>Authorization failed</h1><p>Error: ${error}</p>`);
-          server.close();
           reject(new Error(`Authorization failed: ${error}`));
+          return;
+        }
+
+        if (!code) {
+          reject(new Error('No authorization code found in URL'));
           return;
         }
 
         // Verify state to prevent CSRF attacks
         if (returnedState !== state) {
-          res.writeHead(400, { 'Content-Type': 'text/html' });
-          res.end('<h1>State mismatch - possible CSRF attack</h1>');
-          server.close();
           reject(new Error('State mismatch - possible CSRF attack'));
           return;
         }
 
-        if (code) {
-          res.writeHead(200, { 'Content-Type': 'text/html' });
-          res.end(`
-            <h1>✅ Authorization successful!</h1>
-            <p>You can close this window and return to the terminal.</p>
-          `);
-          server.close();
-          resolve({ code, verifier });
-          return;
-        }
-
-        res.writeHead(400, { 'Content-Type': 'text/html' });
-        res.end('<h1>Missing authorization code</h1>');
-      } else {
-        res.writeHead(404);
-        res.end('Not found');
+        console.log('\n✅ Authorization code received!\n');
+        resolve({ code, verifier });
+      } catch (err) {
+        reject(new Error(`Invalid URL format: ${err}`));
       }
     });
-
-    server.listen(8000, () => {
-      console.log('📡 Callback server listening on http://localhost:8000');
-    });
-
-    // Timeout after 5 minutes
-    setTimeout(() => {
-      server.close();
-      reject(new Error('OAuth flow timed out after 5 minutes'));
-    }, 5 * 60 * 1000);
   });
 }
