@@ -160,7 +160,24 @@ export async function startOAuthFlow(): Promise<{ code: string; verifier: string
       rl.close();
 
       try {
-        const trimmed = input.trim();
+        let trimmed = input.trim();
+
+        // Fix paste bracketing bug that doubles characters
+        // Check if characters are doubled (e.g., "aabbcc" instead of "abc")
+        if (trimmed.length > 0 && trimmed.length % 2 === 0) {
+          const isDoubled = trimmed.split('').every((char, i) => {
+            if (i % 2 === 0) {
+              return char === trimmed[i + 1];
+            }
+            return true;
+          });
+
+          if (isDoubled) {
+            // Remove every other character
+            trimmed = trimmed.split('').filter((_, i) => i % 2 === 0).join('');
+            console.log('Fixed paste doubling bug');
+          }
+        }
 
         if (!trimmed || !trimmed.includes('#')) {
           reject(new Error('Invalid format. Expected: code#state'));
