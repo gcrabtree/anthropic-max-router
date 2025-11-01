@@ -63,14 +63,6 @@ See [`ANTHROPIC-MAX-PLAN-IMPLEMENTATION-GUIDE.md`](./ANTHROPIC-MAX-PLAN-IMPLEMEN
 - Token management
 - Implementation patterns
 
-## Troubleshooting
-
-**"No tokens found"** → Run `npm start`, select option 1
-
-**"This credential is only authorized for use with Claude Code"** → See implementation guide for system prompt requirements
-
-**Token refresh fails** → Select option 4 (logout), then option 1 (re-authenticate)
-
 ## Author
 
 **nsxdavid (David Whatley)**
