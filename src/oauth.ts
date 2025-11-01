@@ -134,7 +134,9 @@ export async function refreshAccessToken(refreshToken: string): Promise<OAuthTok
 /**
  * Start OAuth flow - user manually copies code from redirect
  */
-export async function startOAuthFlow(): Promise<{ code: string; verifier: string }> {
+export async function startOAuthFlow(
+  askQuestion: (prompt: string) => Promise<string>
+): Promise<{ code: string; verifier: string; state: string }> {
   const { verifier, challenge } = generatePKCE();
   const state = generateState();
   const authUrl = getAuthorizationUrl(challenge, state);
@@ -148,37 +150,23 @@ export async function startOAuthFlow(): Promise<{ code: string; verifier: string
   console.log('Example: abc123xyz...#def456uvw...');
   console.log('='.repeat(70) + '\n');
 
-  const readline = require('readline');
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
+  const input = await askQuestion('Paste code#state here: ');
+  const trimmed = input.trim();
 
-  return new Promise((resolve, reject) => {
-    rl.question('Paste code#state here: ', (input) => {
-      rl.close();
+  if (!trimmed || !trimmed.includes('#')) {
+    throw new Error('Invalid format. Expected: code#state');
+  }
 
-      const trimmed = input.trim();
+  const [code, returnedState] = trimmed.split('#');
 
-      if (!trimmed || !trimmed.includes('#')) {
-        reject(new Error('Invalid format. Expected: code#state'));
-        return;
-      }
+  if (!code || !returnedState) {
+    throw new Error('Missing code or state');
+  }
 
-      const [code, returnedState] = trimmed.split('#');
+  if (returnedState !== state) {
+    throw new Error('State mismatch - possible CSRF attack');
+  }
 
-      if (!code || !returnedState) {
-        reject(new Error('Missing code or state'));
-        return;
-      }
-
-      if (returnedState !== state) {
-        reject(new Error('State mismatch - possible CSRF attack'));
-        return;
-      }
-
-      console.log('\n✅ Authorization code received!\n');
-      resolve({ code, verifier, state: returnedState });
-    });
-  });
+  console.log('\n✅ Authorization code received!\n');
+  return { code, verifier, state: returnedState };
 }

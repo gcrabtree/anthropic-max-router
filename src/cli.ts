@@ -18,7 +18,7 @@
 import readline from 'readline';
 import { startOAuthFlow, exchangeCodeForTokens, refreshAccessToken } from './oauth.js';
 import { loadTokens, saveTokens, isTokenExpired, getValidAccessToken } from './token-manager.js';
-import { sendMessage } from './client.js';
+import { sendMessage, testMaxPlanValidation } from './client.js';
 import type { OAuthTokens } from './types.js';
 
 const rl = readline.createInterface({
@@ -67,7 +67,7 @@ async function handleAuthenticate() {
   console.log('Your browser will open to authorize this application.\n');
 
   try {
-    const { code, verifier, state } = await startOAuthFlow();
+    const { code, verifier, state } = await startOAuthFlow(question);
     console.log('\n✅ Authorization received');
     console.log('🔄 Exchanging for tokens...\n');
 
@@ -207,6 +207,49 @@ async function handleLogout() {
   }
 }
 
+async function handleProofOfMaxPlan() {
+  console.log('\n' + '='.repeat(70));
+  console.log('PROOF OF MAX PLAN - Validation Test');
+  console.log('='.repeat(70));
+  console.log('\nThis test intentionally sends a request WITHOUT the required');
+  console.log('"Claude Code" system prompt to prove MAX plan enforcement.\n');
+
+  const tokens = await loadTokens();
+
+  if (!tokens) {
+    console.log('❌ No tokens found. Please authenticate first (option 1).\n');
+    return;
+  }
+
+  try {
+    console.log('🔄 Sending test request (intentionally invalid)...\n');
+
+    const result = await testMaxPlanValidation(tokens.access_token);
+
+    if (!result.success && result.statusCode === 400) {
+      console.log('✅ MAX PLAN VALIDATION CONFIRMED!\n');
+      console.log('='.repeat(70));
+      console.log('Anthropic rejected the request with:');
+      console.log('='.repeat(70));
+      console.log(`Status Code: ${result.statusCode}`);
+      console.log(`Request ID:  ${result.requestId}`);
+      console.log('\nError Details:');
+      console.log(JSON.stringify(result.error, null, 2));
+      console.log('\n' + '='.repeat(70));
+      console.log('This proves your OAuth token is from a Claude MAX subscription');
+      console.log('and is restricted to Claude Code usage only.');
+      console.log('='.repeat(70) + '\n');
+    } else {
+      console.log('⚠️  Unexpected result:\n');
+      console.log(JSON.stringify(result, null, 2));
+      console.log('');
+    }
+  } catch (error) {
+    console.error('\n❌ Error during test:', error instanceof Error ? error.message : error);
+    console.log('');
+  }
+}
+
 async function showMenu(): Promise<string> {
   console.log('='.repeat(70));
   console.log('ANTHROPIC MAX PLAN OAUTH - INTERACTIVE CLI');
@@ -216,9 +259,10 @@ async function showMenu(): Promise<string> {
   console.log('  2. Refresh Token');
   console.log('  3. Send Chat Message');
   console.log('  4. Logout (Delete Tokens)');
-  console.log('  5. Exit\n');
+  console.log('  5. Proof of MAX Plan (Validation Test)');
+  console.log('  6. Exit\n');
 
-  return await question('Select option (1-5): ');
+  return await question('Select option (1-6): ');
 }
 
 async function main() {
@@ -256,12 +300,16 @@ async function main() {
         break;
 
       case '5':
+        await handleProofOfMaxPlan();
+        break;
+
+      case '6':
         console.log('\n👋 Goodbye!\n');
         rl.close();
         process.exit(0);
 
       default:
-        console.log('\n❌ Invalid option. Please select 1-5.\n');
+        console.log('\n❌ Invalid option. Please select 1-6.\n');
     }
   }
 }

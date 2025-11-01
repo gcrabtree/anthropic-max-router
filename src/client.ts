@@ -134,3 +134,70 @@ export async function sendMessage(
   const textContent = response.content.find(block => block.type === 'text');
   return textContent?.text || '';
 }
+
+/**
+ * Test function that INTENTIONALLY violates Claude Code requirements
+ * to prove MAX plan enforcement
+ * Returns the error response from Anthropic
+ */
+export async function testMaxPlanValidation(accessToken: string): Promise<{
+  success: boolean;
+  error?: any;
+  statusCode?: number;
+  requestId?: string;
+}> {
+  // Intentionally use WRONG system prompt to trigger validation error
+  const invalidRequest: AnthropicRequest = {
+    model: 'claude-sonnet-4-5',
+    max_tokens: 100,
+    system: [
+      {
+        type: 'text',
+        text: 'You are a helpful assistant.'  // WRONG - should be Claude Code
+      }
+    ],
+    messages: [
+      {
+        role: 'user',
+        content: 'Hello'
+      }
+    ],
+    tools: [DEFAULT_TOOL],
+    tool_choice: { type: 'auto' }
+  };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'anthropic-version': ANTHROPIC_VERSION,
+        'anthropic-beta': ANTHROPIC_BETA
+      },
+      body: JSON.stringify(invalidRequest)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data,
+        statusCode: response.status,
+        requestId: data.request_id
+      };
+    }
+
+    // If it somehow succeeded, that's unexpected
+    return {
+      success: true,
+      error: 'Unexpected: Request succeeded without Claude Code system prompt'
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
