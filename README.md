@@ -1,4 +1,4 @@
-# Anthropic MAX Plan OAuth - TypeScript Implementation
+# Anthropic MAX Plan OAuth
 
 <div align="center">
 
