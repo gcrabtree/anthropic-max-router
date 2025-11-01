@@ -80,11 +80,9 @@ async function handleAuthenticate() {
     console.log(`  Scope: ${tokens.scope}`);
     console.log(`  Expires in: ${Math.floor(tokens.expires_in / 3600)} hours`);
     console.log('');
-
-    const answer = await question('Press ENTER to continue...');
   } catch (error) {
     console.error('\n❌ Authentication failed:', error instanceof Error ? error.message : error);
-    const answer = await question('\nPress ENTER to continue...');
+    console.log('');
   }
 }
 
@@ -97,7 +95,6 @@ async function handleRefreshToken() {
 
   if (!tokens) {
     console.log('\n❌ No tokens found. Please authenticate first (option 1).\n');
-    await question('Press ENTER to continue...');
     return;
   }
 
@@ -117,12 +114,9 @@ async function handleRefreshToken() {
     console.log('New token details:');
     console.log(`  Expires in: ${Math.floor(newTokens.expires_in / 3600)} hours`);
     console.log('');
-
-    await question('Press ENTER to continue...');
   } catch (error) {
     console.error('\n❌ Token refresh failed:', error instanceof Error ? error.message : error);
     console.log('\nYou may need to re-authenticate (option 1).\n');
-    await question('Press ENTER to continue...');
   }
 }
 
@@ -180,7 +174,6 @@ async function handleLogout() {
 
   if (!tokens) {
     console.log('\n❌ Not currently authenticated.\n');
-    await question('Press ENTER to continue...');
     return;
   }
 
@@ -194,12 +187,11 @@ async function handleLogout() {
       console.log('\n✅ Logged out successfully. Tokens deleted.\n');
     } catch (error) {
       console.error('\n❌ Error deleting tokens:', error instanceof Error ? error.message : error);
+      console.log('');
     }
   } else {
     console.log('\n❌ Logout cancelled.\n');
   }
-
-  await question('Press ENTER to continue...');
 }
 
 async function showMenu(): Promise<string> {
@@ -257,7 +249,6 @@ async function main() {
 
       default:
         console.log('\n❌ Invalid option. Please select 1-5.\n');
-        await question('Press ENTER to continue...');
     }
   }
 }
