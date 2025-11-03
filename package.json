@@ -1,11 +1,12 @@
 {
   "name": "anthropic-oauth-max-plan",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Proof of concept for using Anthropic MAX plan OAuth tokens with flat-rate billing",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "start": "tsx src/cli.ts"
+    "start": "tsx src/cli.ts",
+    "router": "tsx src/router/server.ts"
   },
   "keywords": [
     "anthropic",
