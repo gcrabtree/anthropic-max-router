@@ -1,4 +1,4 @@
-# Anthropic MAX Plan OAuth
+# Anthropic MAX Plan OAuth Router
 
 <div align="center">
 
