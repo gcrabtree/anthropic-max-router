@@ -190,9 +190,14 @@ app.post('/v1/messages', async (req: Request, res: Response) => {
 
 // Startup sequence
 async function startRouter() {
-  logger.startup('╔════════════════════════════════════════════════════════════╗');
-  logger.startup('║   Anthropic MAX Plan Router                                ║');
-  logger.startup('╚════════════════════════════════════════════════════════════╝');
+  logger.startup('');
+  logger.startup('███╗   ███╗ █████╗ ██╗  ██╗    ██████╗ ██╗      █████╗ ███╗   ██╗');
+  logger.startup('████╗ ████║██╔══██╗╚██╗██╔╝    ██╔══██╗██║     ██╔══██╗████╗  ██║');
+  logger.startup('██╔████╔██║███████║ ╚███╔╝     ██████╔╝██║     ███████║██╔██╗ ██║');
+  logger.startup('██║╚██╔╝██║██╔══██║ ██╔██╗     ██╔═══╝ ██║     ██╔══██║██║╚██╗██║');
+  logger.startup('██║ ╚═╝ ██║██║  ██║██╔╝ ██╗    ██║     ███████╗██║  ██║██║ ╚████║');
+  logger.startup('╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝');
+  logger.startup('                         ═══════ Router ═══════                     ');
   logger.startup('');
 
   // Check if we have tokens
