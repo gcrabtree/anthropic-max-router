@@ -140,10 +140,10 @@ More info: https://github.com/nsxdavid/anthropic-max-router
 `);
 }
 
+let PORT = process.env.ROUTER_PORT ? parseInt(process.env.ROUTER_PORT) : 3000;
 parseArgs();
 
 const app = express();
-let PORT = process.env.ROUTER_PORT ? parseInt(process.env.ROUTER_PORT) : 3000;
 
 // Anthropic API configuration
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
