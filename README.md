@@ -735,4 +735,4 @@ MIT
 
 This demonstrates Anthropic's official OAuth flow with MAX subscription. All authentication uses Anthropic's official endpoints. This is the same OAuth flow used by Claude Code.
 
-Anthropic may change OAuth requirements at any time. Tested and verified working as of November 2nd, 2025.
+Anthropic may change OAuth requirements at any time. Tested and verified working as of November 15th, 2025.
