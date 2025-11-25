@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Anthropic MAX Plan OAuth](assets/screenshot.png)
+![Anthropic MAX Plan OAuth](https://raw.githubusercontent.com/nsxdavid/anthropic-max-router/main/assets/screenshot.png)
 
 *Use your Anthropic MAX Plan with ANY AI tool - Anthropic SDK, OpenAI SDK, LangChain, and more!*
 

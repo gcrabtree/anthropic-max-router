@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.2] - 2025-11-25
+
+### Fixed
+- **npm package documentation** - Fixed screenshot image not displaying on npm package page
+  - Changed image path from relative (`assets/screenshot.png`) to absolute GitHub URL
+  - Image now loads correctly on both GitHub and npm package pages
+
+### Security
+- **Dependencies** - Updated dependencies and verified clear of Shai-Hulud 1/2 worm vulnerability
+
 ## [1.2.1] - 2025-11-15
 
 ### Fixed
