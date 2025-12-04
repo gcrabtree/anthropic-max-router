@@ -68,7 +68,7 @@ export function mapOpenAIModelToAnthropic(modelName: string): string {
 
   // Low-tier patterns → Haiku (fast/cheap models only)
   const lowTierPatterns = ['-nano', 'gpt-3.5', 'gpt-3'];
-  if (lowTierPatterns.some(pattern => model.includes(pattern))) {
+  if (lowTierPatterns.some((pattern) => model.includes(pattern))) {
     return 'claude-haiku-4-5';
   }
 
@@ -93,7 +93,7 @@ export function getModelMappingReason(modelName: string): string {
 
   const model = modelName.toLowerCase();
   const lowTierPatterns = ['-nano', 'gpt-3.5', 'gpt-3'];
-  if (lowTierPatterns.some(pattern => model.includes(pattern))) {
+  if (lowTierPatterns.some((pattern) => model.includes(pattern))) {
     return 'low-tier pattern match';
   }
 

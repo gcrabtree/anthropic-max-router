@@ -13,17 +13,12 @@
  * Anthropic API client with OAuth MAX plan support
  */
 
-import type {
-  OAuthTokens,
-  AnthropicRequest,
-  AnthropicResponse,
-  SystemMessage,
-  Tool
-} from './types.js';
+import type { AnthropicRequest, AnthropicResponse, SystemMessage, Tool } from './types.js';
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
-const ANTHROPIC_BETA = 'oauth-2025-04-20,claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14';
+const ANTHROPIC_BETA =
+  'oauth-2025-04-20,claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14';
 
 /**
  * CRITICAL: System prompt required for OAuth with Sonnet/Opus
@@ -31,7 +26,7 @@ const ANTHROPIC_BETA = 'oauth-2025-04-20,claude-code-20250219,interleaved-thinki
  */
 const REQUIRED_SYSTEM_PROMPT: SystemMessage = {
   type: 'text',
-  text: 'You are Claude Code, Anthropic\'s official CLI for Claude.'
+  text: "You are Claude Code, Anthropic's official CLI for Claude.",
 };
 
 /**
@@ -43,26 +38,23 @@ export async function makeAnthropicRequest(
 ): Promise<AnthropicResponse> {
   // CRITICAL: Ensure system prompt starts with required phrase
   const system = request.system || [];
-  const systemWithRequired = [
-    REQUIRED_SYSTEM_PROMPT,
-    ...system
-  ];
+  const systemWithRequired = [REQUIRED_SYSTEM_PROMPT, ...system];
 
   // Build the request body
   const body: AnthropicRequest = {
     ...request,
-    system: systemWithRequired
+    system: systemWithRequired,
   };
 
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       'anthropic-version': ANTHROPIC_VERSION,
-      'anthropic-beta': ANTHROPIC_BETA
+      'anthropic-beta': ANTHROPIC_BETA,
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -70,7 +62,7 @@ export async function makeAnthropicRequest(
     throw new Error(`API request failed (${response.status}): ${error}`);
   }
 
-  return await response.json() as AnthropicResponse;
+  return (await response.json()) as AnthropicResponse;
 }
 
 /**
@@ -97,16 +89,16 @@ export async function sendMessage(
     messages: [
       {
         role: 'user',
-        content: userMessage
-      }
+        content: userMessage,
+      },
     ],
-    tools: options.tools
+    tools: options.tools,
   };
 
   const response = await makeAnthropicRequest(accessToken, request);
 
   // Extract text from response
-  const textContent = response.content.find(block => block.type === 'text');
+  const textContent = response.content.find((block) => block.type === 'text');
   return textContent?.text || '';
 }
 
@@ -117,7 +109,7 @@ export async function sendMessage(
  */
 export async function testMaxPlanValidation(accessToken: string): Promise<{
   success: boolean;
-  error?: any;
+  error?: unknown;
   statusCode?: number;
   requestId?: string;
 }> {
@@ -128,50 +120,49 @@ export async function testMaxPlanValidation(accessToken: string): Promise<{
     system: [
       {
         type: 'text',
-        text: 'You are a helpful assistant.'  // WRONG - should be Claude Code
-      }
+        text: 'You are a helpful assistant.', // WRONG - should be Claude Code
+      },
     ],
     messages: [
       {
         role: 'user',
-        content: 'Hello'
-      }
-    ]
+        content: 'Hello',
+      },
+    ],
   };
 
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'anthropic-version': ANTHROPIC_VERSION,
-        'anthropic-beta': ANTHROPIC_BETA
+        'anthropic-beta': ANTHROPIC_BETA,
       },
-      body: JSON.stringify(invalidRequest)
+      body: JSON.stringify(invalidRequest),
     });
 
-    const data = await response.json() as any;
+    const data = (await response.json()) as unknown;
 
     if (!response.ok) {
       return {
         success: false,
-        error: data,
+        error: data as Record<string, unknown>,
         statusCode: response.status,
-        requestId: data.request_id
+        requestId: (data as { request_id?: string }).request_id,
       };
     }
 
     // If it somehow succeeded, that's unexpected
     return {
       success: true,
-      error: 'Unexpected: Request succeeded without Claude Code system prompt'
+      error: 'Unexpected: Request succeeded without Claude Code system prompt',
     };
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }
-

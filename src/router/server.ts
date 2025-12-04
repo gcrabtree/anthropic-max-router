@@ -5,19 +5,14 @@ import readline from 'readline';
 import { getValidAccessToken, loadTokens, saveTokens } from '../token-manager.js';
 import { startOAuthFlow, exchangeCodeForTokens } from '../oauth.js';
 import { ensureRequiredSystemPrompt } from './middleware.js';
-import {
-  AnthropicRequest,
-  AnthropicResponse,
-  OpenAIChatCompletionRequest,
-  OpenAIChatCompletionResponse
-} from '../types.js';
-import { logger, LogLevel } from './logger.js';
+import { AnthropicRequest, AnthropicResponse, OpenAIChatCompletionRequest } from '../types.js';
+import { logger } from './logger.js';
 import {
   translateOpenAIToAnthropic,
   translateAnthropicToOpenAI,
   translateAnthropicStreamToOpenAI,
   translateAnthropicErrorToOpenAI,
-  validateOpenAIRequest
+  validateOpenAIRequest,
 } from './translator.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -29,7 +24,7 @@ const packageJson = JSON.parse(readFileSync(join(__dirname, '../../package.json'
 
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
 function askQuestion(prompt: string): Promise<string> {
@@ -53,12 +48,11 @@ function extractBearerToken(req: Request): string | null {
   return null;
 }
 
-
 // Endpoint configuration
 const endpointConfig = {
-  anthropicEnabled: true,  // default
-  openaiEnabled: true,     // default - enable both endpoints
-  allowBearerPassthrough: true  // default - allow clients to use their own bearer tokens
+  anthropicEnabled: true, // default
+  openaiEnabled: true, // default - enable both endpoints
+  allowBearerPassthrough: true, // default - allow clients to use their own bearer tokens
 };
 
 // Parse command line arguments
@@ -168,7 +162,8 @@ const app = express();
 // Anthropic API configuration
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
-const ANTHROPIC_BETA = 'oauth-2025-04-20,claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14';
+const ANTHROPIC_BETA =
+  'oauth-2025-04-20,claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14';
 
 // Parse JSON request bodies with increased limit for large payloads
 app.use(express.json({ limit: '50mb' }));
@@ -182,21 +177,24 @@ app.get('/health', (_req: Request, res: Response) => {
 app.get('/v1/models', async (req: Request, res: Response) => {
   try {
     // Check for API key in headers
-    const apiKey = req.headers['x-api-key'] || 
-                   (req.headers['authorization']?.startsWith('Bearer ') ? 
-                    req.headers['authorization'].substring(7) : null);
+    const apiKey =
+      req.headers['x-api-key'] ||
+      (req.headers['authorization']?.startsWith('Bearer ')
+        ? req.headers['authorization'].substring(7)
+        : null);
 
     if (!apiKey) {
       res.status(401).json({
         type: 'error',
         error: {
           type: 'authentication_error',
-          message: 'x-api-key header is required for /v1/models endpoint. Note: API key is only used for this endpoint; other endpoints use OAuth authentication.'
-        }
+          message:
+            'x-api-key header is required for /v1/models endpoint. Note: API key is only used for this endpoint; other endpoints use OAuth authentication.',
+        },
       });
       return;
     }
-    
+
     const response = await fetch('https://api.anthropic.com/v1/models', {
       method: 'GET',
       headers: {
@@ -212,8 +210,8 @@ app.get('/v1/models', async (req: Request, res: Response) => {
       type: 'error',
       error: {
         type: 'internal_error',
-        message: error instanceof Error ? error.message : 'Failed to fetch models'
-      }
+        message: error instanceof Error ? error.message : 'Failed to fetch models',
+      },
     });
   }
 });
@@ -235,7 +233,7 @@ const handleMessagesRequest = async (req: Request, res: Response) => {
     // Determine which authentication method to use
     const clientBearerToken = extractBearerToken(req);
     const usePassthrough = endpointConfig.allowBearerPassthrough && clientBearerToken !== null;
-    
+
     let accessToken: string;
     if (usePassthrough) {
       accessToken = clientBearerToken!;
@@ -255,7 +253,7 @@ const handleMessagesRequest = async (req: Request, res: Response) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'anthropic-version': ANTHROPIC_VERSION,
         'anthropic-beta': ANTHROPIC_BETA,
       },
@@ -269,30 +267,23 @@ const handleMessagesRequest = async (req: Request, res: Response) => {
       res.setHeader('Connection', 'keep-alive');
       res.status(response.status);
       // Pipe the Anthropic response stream directly to the client
-      for await (const chunk of response.body as any) {
+      for await (const chunk of response.body as AsyncIterable<Uint8Array>) {
         res.write(chunk);
       }
       res.end();
       // Logging for streaming responses
-      logger.logRequest(
-        requestId,
-        timestamp,
-        originalRequest,
-        hadSystemPrompt,
-        { status: response.status, data: null as any }
-      );
+      logger.logRequest(requestId, timestamp, originalRequest, hadSystemPrompt, {
+        status: response.status,
+        data: undefined,
+      });
     } else {
-      const responseData = await response.json() as AnthropicResponse;
-      logger.logRequest(
-        requestId,
-        timestamp,
-        originalRequest,
-        hadSystemPrompt,
-        { status: response.status, data: responseData }
-      );
+      const responseData = (await response.json()) as AnthropicResponse;
+      logger.logRequest(requestId, timestamp, originalRequest, hadSystemPrompt, {
+        status: response.status,
+        data: responseData,
+      });
       res.status(response.status).json(responseData);
     }
-
   } catch (error) {
     // Log the error
     logger.logRequest(
@@ -309,8 +300,8 @@ const handleMessagesRequest = async (req: Request, res: Response) => {
       res.status(500).json({
         error: {
           type: 'internal_error',
-          message: error.message
-        }
+          message: error.message,
+        },
       });
       return;
     }
@@ -318,8 +309,8 @@ const handleMessagesRequest = async (req: Request, res: Response) => {
     res.status(500).json({
       error: {
         type: 'internal_error',
-        message: 'An unexpected error occurred'
-      }
+        message: 'An unexpected error occurred',
+      },
     });
   }
 };
@@ -347,7 +338,7 @@ const handleChatCompletionsRequest = async (req: Request, res: Response) => {
     // Determine which authentication method to use
     const clientBearerToken = extractBearerToken(req);
     const usePassthrough = endpointConfig.allowBearerPassthrough && clientBearerToken !== null;
-    
+
     let accessToken: string;
     if (usePassthrough) {
       accessToken = clientBearerToken!;
@@ -367,7 +358,7 @@ const handleChatCompletionsRequest = async (req: Request, res: Response) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'anthropic-version': ANTHROPIC_VERSION,
         'anthropic-beta': ANTHROPIC_BETA,
       },
@@ -375,7 +366,10 @@ const handleChatCompletionsRequest = async (req: Request, res: Response) => {
     });
 
     // Handle streaming responses
-    if (openaiRequest.stream && response.headers.get('content-type')?.includes('text/event-stream')) {
+    if (
+      openaiRequest.stream &&
+      response.headers.get('content-type')?.includes('text/event-stream')
+    ) {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
@@ -401,7 +395,7 @@ const handleChatCompletionsRequest = async (req: Request, res: Response) => {
         timestamp,
         modifiedRequest,
         hadSystemPrompt,
-        { status: response.status, data: null as any },
+        { status: response.status, data: undefined },
         undefined,
         'openai'
       );
@@ -415,7 +409,7 @@ const handleChatCompletionsRequest = async (req: Request, res: Response) => {
           timestamp,
           modifiedRequest,
           hadSystemPrompt,
-          { status: response.status, data: errorData as any },
+          { status: response.status, data: errorData as AnthropicResponse },
           undefined,
           'openai'
         );
@@ -423,7 +417,7 @@ const handleChatCompletionsRequest = async (req: Request, res: Response) => {
         return;
       }
 
-      const anthropicResponse = await response.json() as AnthropicResponse;
+      const anthropicResponse = (await response.json()) as AnthropicResponse;
       const openaiResponse = translateAnthropicToOpenAI(anthropicResponse, openaiRequest.model);
 
       logger.logRequest(
@@ -438,7 +432,6 @@ const handleChatCompletionsRequest = async (req: Request, res: Response) => {
 
       res.status(response.status).json(openaiResponse);
     }
-
   } catch (error) {
     // Log the error
     logger.logRequest(
@@ -554,9 +547,13 @@ async function startRouter() {
     if (endpointConfig.anthropicEnabled && endpointConfig.openaiEnabled) {
       logger.startup('💡 Both Anthropic and OpenAI endpoints are enabled');
     } else if (endpointConfig.openaiEnabled) {
-      logger.startup('💡 OpenAI compatibility mode - configure tools to use OpenAI Chat Completions API');
+      logger.startup(
+        '💡 OpenAI compatibility mode - configure tools to use OpenAI Chat Completions API'
+      );
     } else {
-      logger.startup('💡 Configure your AI tool to use http://localhost:' + PORT + ' as the base URL');
+      logger.startup(
+        '💡 Configure your AI tool to use http://localhost:' + PORT + ' as the base URL'
+      );
     }
 
     if (endpointConfig.allowBearerPassthrough) {

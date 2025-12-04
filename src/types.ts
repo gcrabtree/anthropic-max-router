@@ -60,7 +60,7 @@ export interface Message {
 export interface ContentBlock {
   type: 'text' | 'tool_use' | 'tool_result';
   text?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -71,7 +71,7 @@ export interface Tool {
   description: string;
   input_schema: {
     type: 'object';
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
     required?: string[];
   };
 }
@@ -147,7 +147,7 @@ export interface OpenAITool {
     description: string;
     parameters: {
       type: 'object';
-      properties: Record<string, any>;
+      properties: Record<string, unknown>;
       required?: string[];
     };
   };

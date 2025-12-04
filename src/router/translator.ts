@@ -14,14 +14,12 @@ import {
   OpenAIMessage,
   OpenAITool,
   OpenAIChatCompletionResponse,
-  OpenAIChatCompletionChunk,
   OpenAIErrorResponse,
   AnthropicRequest,
   AnthropicResponse,
   Message,
-  SystemMessage,
   Tool,
-  ContentBlock
+  ContentBlock,
 } from '../types.js';
 import { mapOpenAIModelToAnthropic } from './model-mapper.js';
 
@@ -64,7 +62,7 @@ export function translateOpenAIToAnthropic(
       if (currentRole && currentContent.length > 0) {
         anthropicMessages.push({
           role: currentRole,
-          content: currentContent.join('\n\n')
+          content: currentContent.join('\n\n'),
         });
       }
       currentRole = role;
@@ -76,7 +74,7 @@ export function translateOpenAIToAnthropic(
   if (currentRole && currentContent.length > 0) {
     anthropicMessages.push({
       role: currentRole,
-      content: currentContent.join('\n\n')
+      content: currentContent.join('\n\n'),
     });
   }
 
@@ -91,15 +89,17 @@ export function translateOpenAIToAnthropic(
     model: mapOpenAIModelToAnthropic(openaiRequest.model),
     max_tokens: openaiRequest.max_tokens || 4096,
     messages: anthropicMessages,
-    stream: openaiRequest.stream || false
+    stream: openaiRequest.stream || false,
   };
 
   // Add system messages if present
   if (systemMessages.length > 0) {
-    anthropicRequest.system = [{
-      type: 'text',
-      text: systemMessages.join('\n\n')
-    }];
+    anthropicRequest.system = [
+      {
+        type: 'text',
+        text: systemMessages.join('\n\n'),
+      },
+    ];
   }
 
   // Add tools if present
@@ -120,8 +120,8 @@ function translateOpenAIToolToAnthropic(openaiTool: OpenAITool): Tool {
     input_schema: {
       type: 'object',
       properties: openaiTool.function.parameters.properties,
-      required: openaiTool.function.parameters.required
-    }
+      required: openaiTool.function.parameters.required,
+    },
   };
 }
 
@@ -153,34 +153,39 @@ export function translateAnthropicToOpenAI(
     (block: ContentBlock) => block.type === 'tool_use'
   );
 
-  const toolCalls = toolUseBlocks.length > 0 ? toolUseBlocks.map((block: any) => ({
-    id: block.id,
-    type: 'function' as const,
-    function: {
-      name: block.name,
-      arguments: JSON.stringify(block.input)
-    }
-  })) : undefined;
+  const toolCalls =
+    toolUseBlocks.length > 0
+      ? toolUseBlocks.map((block: ContentBlock) => ({
+          id: block.id as string,
+          type: 'function' as const,
+          function: {
+            name: block.name as string,
+            arguments: JSON.stringify(block.input),
+          },
+        }))
+      : undefined;
 
   return {
     id: anthropicResponse.id,
     object: 'chat.completion',
     created: Math.floor(Date.now() / 1000),
     model: originalModel,
-    choices: [{
-      index: 0,
-      message: {
-        role: 'assistant',
-        content: content || null,
-        ...(toolCalls && { tool_calls: toolCalls })
+    choices: [
+      {
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: content || null,
+          ...(toolCalls && { tool_calls: toolCalls }),
+        },
+        finish_reason: finishReason,
       },
-      finish_reason: finishReason
-    }],
+    ],
     usage: {
       prompt_tokens: anthropicResponse.usage.input_tokens,
       completion_tokens: anthropicResponse.usage.output_tokens,
-      total_tokens: anthropicResponse.usage.input_tokens + anthropicResponse.usage.output_tokens
-    }
+      total_tokens: anthropicResponse.usage.input_tokens + anthropicResponse.usage.output_tokens,
+    },
   };
 }
 
@@ -197,7 +202,6 @@ export async function* translateAnthropicStreamToOpenAI(
   let buffer = '';
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
-  let contentStarted = false;
 
   // Send initial chunk with role
   yield `data: ${JSON.stringify({
@@ -205,11 +209,13 @@ export async function* translateAnthropicStreamToOpenAI(
     object: 'chat.completion.chunk',
     created: Math.floor(Date.now() / 1000),
     model: originalModel,
-    choices: [{
-      index: 0,
-      delta: { role: 'assistant' },
-      finish_reason: null
-    }]
+    choices: [
+      {
+        index: 0,
+        delta: { role: 'assistant' },
+        finish_reason: null,
+      },
+    ],
   })}\n\n`;
 
   for await (const chunk of anthropicStream) {
@@ -228,17 +234,18 @@ export async function* translateAnthropicStreamToOpenAI(
 
           if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
             // Text content delta
-            contentStarted = true;
             yield `data: ${JSON.stringify({
               id: messageId,
               object: 'chat.completion.chunk',
               created: Math.floor(Date.now() / 1000),
               model: originalModel,
-              choices: [{
-                index: 0,
-                delta: { content: event.delta.text },
-                finish_reason: null
-              }]
+              choices: [
+                {
+                  index: 0,
+                  delta: { content: event.delta.text },
+                  finish_reason: null,
+                },
+              ],
             })}\n\n`;
           } else if (event.type === 'message_delta' && event.usage) {
             // Update token counts
@@ -247,7 +254,7 @@ export async function* translateAnthropicStreamToOpenAI(
             // Initial token count
             totalInputTokens = event.message.usage.input_tokens || 0;
           }
-        } catch (error) {
+        } catch {
           // Ignore parse errors for streaming events
         }
       }
@@ -260,16 +267,18 @@ export async function* translateAnthropicStreamToOpenAI(
     object: 'chat.completion.chunk',
     created: Math.floor(Date.now() / 1000),
     model: originalModel,
-    choices: [{
-      index: 0,
-      delta: {},
-      finish_reason: 'stop'
-    }],
+    choices: [
+      {
+        index: 0,
+        delta: {},
+        finish_reason: 'stop',
+      },
+    ],
     usage: {
       prompt_tokens: totalInputTokens,
       completion_tokens: totalOutputTokens,
-      total_tokens: totalInputTokens + totalOutputTokens
-    }
+      total_tokens: totalInputTokens + totalOutputTokens,
+    },
   })}\n\n`;
 
   // Send [DONE] marker
@@ -279,29 +288,28 @@ export async function* translateAnthropicStreamToOpenAI(
 /**
  * Translate Anthropic error to OpenAI error format
  */
-export function translateAnthropicErrorToOpenAI(
-  error: any
-): OpenAIErrorResponse {
+export function translateAnthropicErrorToOpenAI(error: unknown): OpenAIErrorResponse {
   // If it's already an Anthropic error format, translate it
-  if (error.error?.type && error.error?.message) {
+  const err = error as { error?: { type?: string; message?: string }; message?: string };
+  if (err.error?.type && err.error?.message) {
     return {
       error: {
-        message: error.error.message,
-        type: error.error.type,
+        message: err.error.message,
+        type: err.error.type,
         param: null,
-        code: null
-      }
+        code: null,
+      },
     };
   }
 
   // Generic error
   return {
     error: {
-      message: error.message || 'An error occurred',
+      message: err.message || 'An error occurred',
       type: 'internal_error',
       param: null,
-      code: null
-    }
+      code: null,
+    },
   };
 }
 
@@ -311,7 +319,9 @@ export function translateAnthropicErrorToOpenAI(
 export function validateOpenAIRequest(request: OpenAIChatCompletionRequest): void {
   // Error on unsupported features that would change behavior
   if (request.n && request.n > 1) {
-    throw new Error('Multiple completions (n > 1) are not supported. Anthropic only returns one completion.');
+    throw new Error(
+      'Multiple completions (n > 1) are not supported. Anthropic only returns one completion.'
+    );
   }
 
   if (request.logprobs) {

@@ -19,11 +19,10 @@ import readline from 'readline';
 import { startOAuthFlow, exchangeCodeForTokens, refreshAccessToken } from './oauth.js';
 import { loadTokens, saveTokens, isTokenExpired, getValidAccessToken } from './token-manager.js';
 import { sendMessage, testMaxPlanValidation } from './client.js';
-import type { OAuthTokens } from './types.js';
 
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
 function question(prompt: string): Promise<string> {
@@ -46,7 +45,9 @@ async function showAuthStatus() {
   }
 
   const expired = isTokenExpired(tokens);
-  const expiresIn = tokens.expires_at ? Math.floor((tokens.expires_at - Date.now()) / 1000 / 60) : 0;
+  const expiresIn = tokens.expires_at
+    ? Math.floor((tokens.expires_at - Date.now()) / 1000 / 60)
+    : 0;
 
   console.log('✅ Authenticated');
   console.log(`   Scope: ${tokens.scope}`);
@@ -151,7 +152,7 @@ async function handleSendMessage() {
       try {
         const response = await sendMessage(accessToken, trimmed, {
           model: 'claude-sonnet-4-5',
-          maxTokens: 1000
+          maxTokens: 1000,
         });
 
         console.log('='.repeat(70));
@@ -161,11 +162,13 @@ async function handleSendMessage() {
         console.log('='.repeat(70));
         console.log('');
       } catch (msgError) {
-        console.error('❌ Error sending message:', msgError instanceof Error ? msgError.message : msgError);
+        console.error(
+          '❌ Error sending message:',
+          msgError instanceof Error ? msgError.message : msgError
+        );
         console.log('');
       }
     }
-
   } catch (error) {
     console.error('\n❌ Error:', error instanceof Error ? error.message : error);
     console.log('');

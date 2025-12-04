@@ -34,7 +34,15 @@ export class Logger {
     } else if (this.level === 'medium') {
       this.logMedium(requestId, timestamp, request, hadSystemPrompt, response, error, endpointType);
     } else if (this.level === 'maximum') {
-      this.logMaximum(requestId, timestamp, request, hadSystemPrompt, response, error, endpointType);
+      this.logMaximum(
+        requestId,
+        timestamp,
+        request,
+        hadSystemPrompt,
+        response,
+        error,
+        endpointType
+      );
     }
   }
 
@@ -52,7 +60,9 @@ export class Logger {
       : '';
     const endpoint = endpointType === 'openai' ? '[OpenAI]' : '[Anthropic]';
 
-    console.log(`[${timestamp.substring(11, 19)}] ${endpoint} ${status} ${request.model} ${tokens}`);
+    console.log(
+      `[${timestamp.substring(11, 19)}] ${endpoint} ${status} ${request.model} ${tokens}`
+    );
   }
 
   private logMedium(
@@ -88,7 +98,9 @@ export class Logger {
       if (response.status >= 200 && response.status < 300) {
         console.log(`  ✓ Success (${response.status})`);
         if (response.data?.usage) {
-          console.log(`  Tokens: input=${response.data.usage.input_tokens}, output=${response.data.usage.output_tokens}`);
+          console.log(
+            `  Tokens: input=${response.data.usage.input_tokens}, output=${response.data.usage.output_tokens}`
+          );
         }
       } else {
         console.log(`  ✗ Error (${response.status})`);
@@ -145,7 +157,7 @@ export class Logger {
     }
   }
 
-  error(message: string, error?: any) {
+  error(message: string, error?: unknown) {
     // Always show errors
     console.error(message, error || '');
   }

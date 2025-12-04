@@ -1,6 +1,6 @@
 {
   "name": "anthropic-max-router",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Dual API router (Anthropic + OpenAI compatible) for Claude MAX Plan - Use flat-rate billing with ANY AI tool: OpenAI SDK, LangChain, Anthropic SDK, and more",
   "main": "dist/index.js",
   "type": "module",
@@ -12,7 +12,11 @@
     "start": "tsx src/cli.ts",
     "router": "tsx src/router/server.ts",
     "build": "tsc",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "lint": "eslint 'src/**/*.ts'",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write 'src/**/*.ts'",
+    "check": "npm run format && npm run lint && npm run typecheck"
   },
   "files": [
     "dist",
@@ -63,6 +67,10 @@
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.5",
+    "@typescript-eslint/eslint-plugin": "^8.48.1",
+    "@typescript-eslint/parser": "^8.48.1",
+    "eslint": "^9.39.1",
+    "prettier": "^3.7.4",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   }

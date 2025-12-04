@@ -2,7 +2,7 @@ import { AnthropicRequest, SystemMessage } from '../types.js';
 
 export const REQUIRED_SYSTEM_PROMPT: SystemMessage = {
   type: 'text',
-  text: "You are Claude Code, Anthropic's official CLI for Claude."
+  text: "You are Claude Code, Anthropic's official CLI for Claude.",
 };
 
 /**
@@ -29,10 +29,7 @@ function hasRequiredSystemPrompt(system?: SystemMessage[] | string): boolean {
   }
 
   const firstMessage = normalizedSystem[0];
-  return (
-    firstMessage.type === 'text' &&
-    firstMessage.text === REQUIRED_SYSTEM_PROMPT.text
-  );
+  return firstMessage.type === 'text' && firstMessage.text === REQUIRED_SYSTEM_PROMPT.text;
 }
 
 /**
@@ -50,6 +47,6 @@ export function ensureRequiredSystemPrompt(request: AnthropicRequest): Anthropic
   const existingSystem = normalizeSystemPrompt(request.system);
   return {
     ...request,
-    system: [REQUIRED_SYSTEM_PROMPT, ...existingSystem]
+    system: [REQUIRED_SYSTEM_PROMPT, ...existingSystem],
   };
 }

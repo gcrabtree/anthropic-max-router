@@ -14,7 +14,6 @@
  */
 
 import fs from 'fs/promises';
-import path from 'path';
 import type { OAuthTokens } from './types.js';
 import { refreshAccessToken } from './oauth.js';
 
@@ -35,7 +34,7 @@ export async function loadTokens(): Promise<OAuthTokens | null> {
   try {
     const content = await fs.readFile(TOKEN_FILE, 'utf-8');
     return JSON.parse(content) as OAuthTokens;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

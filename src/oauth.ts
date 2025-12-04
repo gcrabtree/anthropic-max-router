@@ -19,10 +19,10 @@ import type { OAuthTokens, OAuthConfig } from './types.js';
 
 export const OAUTH_CONFIG: OAuthConfig = {
   client_id: '9d1c250a-e61b-44d9-88ed-5944d1962f5e',
-  authorize_url: 'https://claude.ai/oauth/authorize',  // MAX mode
+  authorize_url: 'https://claude.ai/oauth/authorize', // MAX mode
   token_url: 'https://console.anthropic.com/v1/oauth/token',
   redirect_uri: 'https://console.anthropic.com/oauth/code/callback',
-  scope: 'org:create_api_key user:profile user:inference'
+  scope: 'org:create_api_key user:profile user:inference',
 };
 
 /**
@@ -30,10 +30,7 @@ export const OAUTH_CONFIG: OAuthConfig = {
  */
 export function generatePKCE(): { verifier: string; challenge: string } {
   const verifier = crypto.randomBytes(32).toString('base64url');
-  const challenge = crypto
-    .createHash('sha256')
-    .update(verifier)
-    .digest('base64url');
+  const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
 
   return { verifier, challenge };
 }
@@ -50,7 +47,7 @@ export function generateState(): string {
  */
 export function getAuthorizationUrl(codeChallenge: string, state: string): string {
   const url = new URL(OAUTH_CONFIG.authorize_url);
-  url.searchParams.set('code', 'true');  // Tell it to return code
+  url.searchParams.set('code', 'true'); // Tell it to return code
   url.searchParams.set('client_id', OAUTH_CONFIG.client_id);
   url.searchParams.set('redirect_uri', OAUTH_CONFIG.redirect_uri);
   url.searchParams.set('response_type', 'code');
@@ -77,13 +74,13 @@ export async function exchangeCodeForTokens(
     grant_type: 'authorization_code',
     client_id: OAUTH_CONFIG.client_id,
     redirect_uri: OAUTH_CONFIG.redirect_uri,
-    code_verifier: codeVerifier
+    code_verifier: codeVerifier,
   };
 
   const response = await fetch(OAUTH_CONFIG.token_url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody)
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
@@ -91,10 +88,10 @@ export async function exchangeCodeForTokens(
     throw new Error(`Token exchange failed: ${error}`);
   }
 
-  const tokens = await response.json() as OAuthTokens;
+  const tokens = (await response.json()) as OAuthTokens;
 
   // Add expiration timestamp
-  tokens.expires_at = Date.now() + (tokens.expires_in * 1000);
+  tokens.expires_at = Date.now() + tokens.expires_in * 1000;
   tokens.created_at = new Date().toISOString();
 
   return tokens;
@@ -108,13 +105,13 @@ export async function refreshAccessToken(refreshToken: string): Promise<OAuthTok
   const requestBody = {
     grant_type: 'refresh_token',
     client_id: OAUTH_CONFIG.client_id,
-    refresh_token: refreshToken
+    refresh_token: refreshToken,
   };
 
   const response = await fetch(OAUTH_CONFIG.token_url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody)
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
@@ -122,10 +119,10 @@ export async function refreshAccessToken(refreshToken: string): Promise<OAuthTok
     throw new Error(`Token refresh failed: ${error}`);
   }
 
-  const tokens = await response.json() as OAuthTokens;
+  const tokens = (await response.json()) as OAuthTokens;
 
   // Add expiration timestamp
-  tokens.expires_at = Date.now() + (tokens.expires_in * 1000);
+  tokens.expires_at = Date.now() + tokens.expires_in * 1000;
   tokens.created_at = new Date().toISOString();
 
   return tokens;

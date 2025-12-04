@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [1.4.1] - 2025-12-04
+
+### Changed
+- Code quality improvements: replaced `any` types with proper TypeScript types
+- Removed unused imports and variables
+- Fixed all ESLint warnings (22 total)
+- Improved type safety throughout the codebase
+
 ## [1.4.0] - 2025-12-04
 
 ### Added
