@@ -40,10 +40,25 @@ function askQuestion(prompt: string): Promise<string> {
   });
 }
 
+/**
+ * Extracts bearer token from Authorization header
+ * @param req Express request object
+ * @returns Bearer token if present, null otherwise
+ */
+function extractBearerToken(req: Request): string | null {
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+  return null;
+}
+
+
 // Endpoint configuration
 const endpointConfig = {
   anthropicEnabled: true,  // default
-  openaiEnabled: true      // default - enable both endpoints
+  openaiEnabled: true,     // default - enable both endpoints
+  allowBearerPassthrough: true  // default - allow clients to use their own bearer tokens
 };
 
 // Parse command line arguments
@@ -86,6 +101,8 @@ function parseArgs() {
       endpointConfig.anthropicEnabled = true;
     } else if (arg === '--disable-anthropic') {
       endpointConfig.anthropicEnabled = false;
+    } else if (arg === '--disable-bearer-passthrough') {
+      endpointConfig.allowBearerPassthrough = false;
     }
     // medium is default, no flag needed
   }
@@ -115,6 +132,9 @@ Options:
   --enable-openai           Enable OpenAI /v1/chat/completions endpoint (default: enabled)
   --disable-openai          Disable OpenAI endpoint
   --enable-all-endpoints    Enable both Anthropic and OpenAI endpoints (same as default)
+
+  Authentication control (default: passthrough enabled):
+  --disable-bearer-passthrough  Force all requests to use router's OAuth tokens
 
   Verbosity levels (default: medium):
   -q, --quiet               Quiet mode - no request logging
@@ -212,8 +232,23 @@ const handleMessagesRequest = async (req: Request, res: Response) => {
     // Ensure the required system prompt is present
     const modifiedRequest = ensureRequiredSystemPrompt(originalRequest);
 
-    // Get a valid OAuth access token (auto-refreshes if needed)
-    const accessToken = await getValidAccessToken();
+    // Determine which authentication method to use
+    const clientBearerToken = extractBearerToken(req);
+    const usePassthrough = endpointConfig.allowBearerPassthrough && clientBearerToken !== null;
+    
+    let accessToken: string;
+    if (usePassthrough) {
+      accessToken = clientBearerToken!;
+      if (logger['level'] === 'maximum') {
+        logger.info(`[Passthrough] Using client bearer token for request ${requestId}`);
+      }
+    } else {
+      // Get a valid OAuth access token (auto-refreshes if needed)
+      accessToken = await getValidAccessToken();
+      if (logger['level'] === 'maximum') {
+        logger.info(`[OAuth] Using router OAuth token for request ${requestId}`);
+      }
+    }
 
     // Forward the request to Anthropic API
     const response = await fetch(ANTHROPIC_API_URL, {
@@ -309,8 +344,23 @@ const handleChatCompletionsRequest = async (req: Request, res: Response) => {
     // Ensure the required system prompt is present
     const modifiedRequest = ensureRequiredSystemPrompt(anthropicRequest);
 
-    // Get a valid OAuth access token (auto-refreshes if needed)
-    const accessToken = await getValidAccessToken();
+    // Determine which authentication method to use
+    const clientBearerToken = extractBearerToken(req);
+    const usePassthrough = endpointConfig.allowBearerPassthrough && clientBearerToken !== null;
+    
+    let accessToken: string;
+    if (usePassthrough) {
+      accessToken = clientBearerToken!;
+      if (logger['level'] === 'maximum') {
+        logger.info(`[Passthrough] Using client bearer token for request ${requestId}`);
+      }
+    } else {
+      // Get a valid OAuth access token (auto-refreshes if needed)
+      accessToken = await getValidAccessToken();
+      if (logger['level'] === 'maximum') {
+        logger.info(`[OAuth] Using router OAuth token for request ${requestId}`);
+      }
+    }
 
     // Forward the request to Anthropic API
     const response = await fetch(ANTHROPIC_API_URL, {
@@ -439,7 +489,8 @@ async function startRouter() {
   // Check if we have tokens
   let tokens = await loadTokens();
 
-  if (!tokens) {
+  if (!tokens && !endpointConfig.allowBearerPassthrough) {
+    // OAuth is required when bearer passthrough is disabled
     logger.startup('No OAuth tokens found. Starting authentication...');
     logger.startup('');
 
@@ -463,15 +514,19 @@ async function startRouter() {
     logger.startup('✅ OAuth tokens found.');
   }
 
-  // Validate/refresh token
-  try {
-    await getValidAccessToken();
-    logger.startup('✅ Token validated.');
-  } catch (error) {
-    logger.error('❌ Token validation failed:', error);
-    logger.info('Please delete .oauth-tokens.json and restart.');
-    rl.close();
-    process.exit(1);
+  // Validate/refresh token (skip if no tokens and passthrough is enabled)
+  if (tokens) {
+    try {
+      await getValidAccessToken();
+      logger.startup('✅ Token validated.');
+    } catch (error) {
+      logger.error('❌ Token validation failed:', error);
+      logger.info('Please delete .oauth-tokens.json and restart.');
+      rl.close();
+      process.exit(1);
+    }
+  } else if (endpointConfig.allowBearerPassthrough) {
+    logger.startup('⚠️  No OAuth tokens - bearer passthrough mode only');
   }
 
   // Close readline interface since we don't need it anymore
@@ -502,6 +557,12 @@ async function startRouter() {
       logger.startup('💡 OpenAI compatibility mode - configure tools to use OpenAI Chat Completions API');
     } else {
       logger.startup('💡 Configure your AI tool to use http://localhost:' + PORT + ' as the base URL');
+    }
+
+    if (endpointConfig.allowBearerPassthrough) {
+      logger.startup('🔑 Bearer token passthrough: ENABLED - clients can use their own API keys');
+    } else {
+      logger.startup('🔑 Bearer token passthrough: DISABLED - all requests use router OAuth');
     }
 
     logger.startup('');

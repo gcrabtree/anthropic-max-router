@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0] - 2025-12-04
+
+### Added
+- **Bearer token passthrough** - Requests with bearer tokens can now use their own Anthropic API credentials
+  - Enabled by default - clients can provide their own API keys via `Authorization: Bearer` header
+  - Router will use the provided bearer token instead of OAuth credentials when present
+  - Allows mixing of OAuth MAX Plan usage with regular API key usage
+  - Useful for tools that already have Anthropic API keys
+  - `--disable-bearer-passthrough` flag to force all requests through OAuth (previous behavior)
+  - Works with both `/v1/messages` (Anthropic) and `/v1/chat/completions` (OpenAI) endpoints
+  - Verbose logging shows which authentication method is used for each request
+  - System prompt injection still applies regardless of authentication method
+  - See `BEARER-TOKEN-PASSTHROUGH.md` for detailed documentation
+
+### Changed
+- OAuth tokens are now optional when bearer passthrough is enabled
+- Router can start in "passthrough-only" mode without OAuth tokens
+- Startup messages now show bearer passthrough status
+
+
 ## [1.3.0] - 2025-11-29
 
 ### Added

@@ -242,6 +242,7 @@ Works with tools built for either Anthropic or OpenAI - just point them to `http
 - ✅ Transparent system prompt injection (required by Anthropic)
 - ✅ Token auto-refresh (8-hour expiration handled automatically)
 - ✅ Configurable logging levels
+- ✅ **Bearer token passthrough** - Clients can use their own API keys (enabled by default)
 
 ### Basic Usage
 
@@ -274,11 +275,37 @@ npm run router -- -p 8080 --verbose        # Combine options
 | `--enable-openai` | | Enable OpenAI /v1/chat/completions endpoint (default: enabled) |
 | `--disable-openai` | | Disable OpenAI endpoint |
 | `--enable-all-endpoints` | | Enable both Anthropic and OpenAI endpoints (same as default) |
+| **Authentication** | | |
+| `--disable-bearer-passthrough` | | Force all requests to use router's OAuth (default: passthrough enabled) |
 | **Verbosity** | | |
 | `--quiet` | `-q` | No request logging |
 | `--minimal` | `-m` | One line per request |
 | (default) | | Medium verbosity - summary per request |
 | `--verbose` | `-V` | Full request/response bodies |
+
+**Environment variables:**
+
+### Bearer Token Passthrough
+
+**By default, clients can use their own Anthropic API keys instead of the router's OAuth credentials.**
+
+When a request includes an `Authorization: Bearer <token>` header:
+- ✅ Router uses the provided bearer token
+- ✅ Request counts against the client's quota (not MAX Plan)
+- ✅ Multiple users can share one router with their own API keys
+
+**Use cases:**
+- Tools that already have Anthropic API keys
+- Development teams with individual API keys
+- Mixing MAX Plan usage with regular API usage
+- Testing with different credentials
+
+**To disable passthrough** (force all requests through OAuth):
+```bash
+npm run router -- --disable-bearer-passthrough
+```
+
+See [BEARER-TOKEN-PASSTHROUGH.md](BEARER-TOKEN-PASSTHROUGH.md) for detailed documentation.
 
 **Environment variables:**
 - `ROUTER_PORT=8080` - Set port
