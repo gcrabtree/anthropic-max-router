@@ -70,7 +70,7 @@ This tests real-world compatibility with the official OpenAI SDK, including:
 curl -X POST http://localhost:3000/v1/chat/completions `
   -H "Content-Type: application/json" `
   -d '{
-    "model": "gpt-4",
+    "model": "claude-opus-4-5",
     "messages": [
       {"role": "system", "content": "You are a helpful assistant."},
       {"role": "user", "content": "Say hello!"}
@@ -84,7 +84,7 @@ curl -X POST http://localhost:3000/v1/chat/completions `
 curl -X POST http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-4",
+    "model": "claude-opus-4-5",
     "messages": [
       {"role": "system", "content": "You are a helpful assistant."},
       {"role": "user", "content": "Say hello!"}
@@ -104,20 +104,20 @@ curl -X POST http://localhost:3000/v1/chat/completions \
 Run with different models and check router logs:
 
 ```bash
-# Test gpt-4 → claude-sonnet-4-5
+# Test claude-opus-4-5 → claude-opus-4-5
 curl -X POST http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 10}'
+  -d '{"model": "claude-opus-4-5", "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 10}'
 
-# Test gpt-3.5-turbo → claude-haiku-4-5
+# Test claude-opus-4-5 → claude-haiku-4-5
 curl -X POST http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 10}'
+  -d '{"model": "claude-opus-4-5", "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 10}'
 ```
 
 **Check router logs for:**
-- `Model: claude-sonnet-4-5` (for gpt-4)
-- `Model: claude-haiku-4-5` (for gpt-3.5-turbo)
+- `Model: claude-opus-4-5` (for claude-opus-4-5)
+- `Model: claude-haiku-4-5` (for claude-opus-4-5)
 
 ### Test 3: Streaming
 
@@ -126,7 +126,7 @@ curl -X POST http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -N \
   -d '{
-    "model": "gpt-4",
+    "model": "claude-opus-4-5",
     "messages": [{"role": "user", "content": "Count to 3"}],
     "stream": true,
     "max_tokens": 50
@@ -145,7 +145,7 @@ Test unsupported parameter `n > 1`:
 curl -X POST http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-4",
+    "model": "claude-opus-4-5",
     "messages": [{"role": "user", "content": "Hello"}],
     "n": 2,
     "max_tokens": 50
@@ -168,12 +168,12 @@ Send requests to both:
 # OpenAI endpoint
 curl -X POST http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hi from OpenAI"}], "max_tokens": 20}'
+  -d '{"model": "claude-opus-4-5", "messages": [{"role": "user", "content": "Hi from OpenAI"}], "max_tokens": 20}'
 
 # Anthropic endpoint
 curl -X POST http://localhost:3000/v1/messages \
   -H "Content-Type: application/json" \
-  -d '{"model": "claude-sonnet-4-5", "messages": [{"role": "user", "content": "Hi from Anthropic"}], "max_tokens": 20}'
+  -d '{"model": "claude-opus-4-5", "messages": [{"role": "user", "content": "Hi from Anthropic"}], "max_tokens": 20}'
 ```
 
 **Check router logs:**
@@ -203,7 +203,7 @@ const client = new OpenAI({
 async function test() {
   console.log('Testing basic completion...');
   const response = await client.chat.completions.create({
-    model: 'gpt-4',
+    model: 'claude-opus-4-5',
     messages: [
       { role: 'system', content: 'You are a helpful assistant.' },
       { role: 'user', content: 'Say hello!' }
@@ -216,7 +216,7 @@ async function test() {
 
   console.log('\nTesting streaming...');
   const stream = await client.chat.completions.create({
-    model: 'gpt-4',
+    model: 'claude-opus-4-5',
     messages: [{ role: 'user', content: 'Count to 3' }],
     stream: true,
     max_tokens: 50
@@ -251,7 +251,7 @@ Send a request:
 ```bash
 curl -X POST http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 10}'
+  -d '{"model": "claude-opus-4-5", "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 10}'
 ```
 
 **Check router logs:** Should show `Model: claude-haiku-4-5` (overridden)
@@ -293,7 +293,7 @@ npm run router -- --enable-openai --minimal
 
 **Expected output:**
 ```
-[10:30:45] [OpenAI] ✓ 200 claude-sonnet-4-5 (in:28 out:19)
+[10:30:45] [OpenAI] ✓ 200 claude-opus-4-5 (in:28 out:19)
 ```
 
 ### Medium (default)
@@ -304,7 +304,7 @@ npm run router -- --enable-openai
 **Expected output:**
 ```
 [2025-11-15T10:30:45.123Z] [abc123] Incoming OpenAI request
-  Model: claude-sonnet-4-5
+  Model: claude-opus-4-5
   Max tokens: 1000
   ✓ Translated OpenAI → Anthropic format
   ✓ Injected required system prompt
@@ -331,7 +331,7 @@ npm run router -- --enable-openai --verbose
 from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
-    model="gpt-4",
+    model="claude-opus-4-5",
     api_key="not-used",
     base_url="http://localhost:3000/v1"
 )
@@ -346,7 +346,7 @@ print(response.content)
 import litellm
 
 response = litellm.completion(
-    model="gpt-4",
+    model="claude-opus-4-5",
     messages=[{"role": "user", "content": "Hello!"}],
     api_base="http://localhost:3000/v1",
     api_key="not-used"
