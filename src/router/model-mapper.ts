@@ -39,16 +39,29 @@ function loadCustomMappings(): CustomMappings {
 }
 
 /**
+ * Check if model matches high-tier o-series pattern (o1, o3, o4 but not -mini variants)
+ */
+function isHighTierOSeries(model: string): boolean {
+  // Match o1, o3, o4, etc. but exclude -mini variants
+  const oSeriesMatch = model.match(/^o(\d+)/);
+  if (oSeriesMatch && !model.includes('-mini')) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Map OpenAI model name to Anthropic model name using pattern-based detection
  *
  * Mapping strategy:
  * 1. Check user's custom mappings file first (.router-mappings.json)
  * 2. Check environment variable override (ANTHROPIC_DEFAULT_MODEL)
  * 3. Pattern-based tier detection:
+ *    - High-tier patterns (o1, o3, -pro, -max, -ultra) → claude-opus-4-5
  *    - Low-tier patterns (nano, gpt-3.5, gpt-3) → claude-haiku-4-5
  *    - Everything else → claude-sonnet-4-5 (default for MAX Plan)
  *
- * @param modelName OpenAI model name (e.g., 'gpt-4', 'gpt-5.1', 'o3-mini')
+ * @param modelName OpenAI model name (e.g., 'gpt-4', 'gpt-5.2-pro', 'o3')
  * @returns Anthropic model name (e.g., 'claude-sonnet-4-5')
  */
 export function mapOpenAIModelToAnthropic(modelName: string): string {
@@ -66,6 +79,17 @@ export function mapOpenAIModelToAnthropic(modelName: string): string {
   // 3. Pattern-based tier detection
   const model = modelName.toLowerCase();
 
+  // High-tier patterns → Opus (premium/reasoning models)
+  const highTierSuffixes = ['-pro', '-max', '-ultra'];
+  if (highTierSuffixes.some((suffix) => model.includes(suffix))) {
+    return 'claude-opus-4-5';
+  }
+
+  // High-tier o-series (o1, o3, etc. but not -mini variants)
+  if (isHighTierOSeries(model)) {
+    return 'claude-opus-4-5';
+  }
+
   // Low-tier patterns → Haiku (fast/cheap models only)
   const lowTierPatterns = ['-nano', 'gpt-3.5', 'gpt-3'];
   if (lowTierPatterns.some((pattern) => model.includes(pattern))) {
@@ -73,7 +97,7 @@ export function mapOpenAIModelToAnthropic(modelName: string): string {
   }
 
   // All other models → Sonnet (best balance for MAX Plan)
-  // This includes: gpt-5, gpt-6, gpt-4, o-series, -pro, -mini, -turbo, etc.
+  // This includes: gpt-4, gpt-5, gpt-5.2, -mini, -turbo, etc.
   return 'claude-sonnet-4-5';
 }
 
@@ -92,6 +116,18 @@ export function getModelMappingReason(modelName: string): string {
   }
 
   const model = modelName.toLowerCase();
+
+  // Check high-tier patterns
+  const highTierSuffixes = ['-pro', '-max', '-ultra'];
+  if (highTierSuffixes.some((suffix) => model.includes(suffix))) {
+    return 'high-tier pattern match';
+  }
+
+  if (isHighTierOSeries(model)) {
+    return 'high-tier o-series match';
+  }
+
+  // Check low-tier patterns
   const lowTierPatterns = ['-nano', 'gpt-3.5', 'gpt-3'];
   if (lowTierPatterns.some((pattern) => model.includes(pattern))) {
     return 'low-tier pattern match';

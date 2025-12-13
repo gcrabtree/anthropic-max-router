@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.4.2] - 2025-12-12
+
+### Added
+- **High-tier model mapping to Claude Opus 4.5** - Premium OpenAI models now map to Claude's most capable model
+  - `-pro`, `-max`, `-ultra` suffixes → `claude-opus-4-5`
+  - o-series reasoning models (o1, o3, o4, etc.) → `claude-opus-4-5`
+  - o-series `-mini` variants remain mapped to Sonnet (e.g., `o3-mini` → `claude-sonnet-4-5`)
+  - Examples: `gpt-5.2-pro`, `gpt-6-ultra`, `o3` → `claude-opus-4-5`
+
+### Changed
+- **Model mapping tiers** - Now three tiers instead of two:
+  - High-tier (Opus): `-pro`, `-max`, `-ultra` suffixes, o-series (non-mini)
+  - Low-tier (Haiku): `-nano`, `gpt-3.5`, `gpt-3`
+  - Default (Sonnet): Everything else (`gpt-4`, `gpt-5.2`, `-mini`, `-turbo`, etc.)
+- Updated `getModelMappingReason()` to report high-tier pattern matches in logs
+
 ## [1.4.1] - 2025-12-04
 
 ### Changed
