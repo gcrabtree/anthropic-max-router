@@ -4,7 +4,7 @@ import express, { Request, Response } from 'express';
 import readline from 'readline';
 import { getValidAccessToken, loadTokens, saveTokens } from '../token-manager.js';
 import { startOAuthFlow, exchangeCodeForTokens } from '../oauth.js';
-import { ensureRequiredSystemPrompt } from './middleware.js';
+import { ensureRequiredSystemPrompt, stripUnknownFields } from './middleware.js';
 import { AnthropicRequest, AnthropicResponse, OpenAIChatCompletionRequest } from '../types.js';
 import { logger } from './logger.js';
 import {
@@ -222,8 +222,8 @@ const handleMessagesRequest = async (req: Request, res: Response) => {
   const timestamp = new Date().toISOString();
 
   try {
-    // Get the request body as an AnthropicRequest
-    const originalRequest = req.body as AnthropicRequest;
+    // Get the request body and strip unknown fields (e.g., context_management from Agent SDK)
+    const originalRequest = stripUnknownFields(req.body as Record<string, unknown>);
 
     const hadSystemPrompt = !!(originalRequest.system && originalRequest.system.length > 0);
 
