@@ -159,11 +159,25 @@ parseArgs();
 
 const app = express();
 
+// CORS middleware - allow all origins
+app.use((_req: Request, res: Response, next: () => void) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key, anthropic-version, anthropic-beta');
+
+  // Handle preflight requests
+  if (_req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+  next();
+});
+
 // Anthropic API configuration
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
 const ANTHROPIC_BETA =
-  'oauth-2025-04-20,claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14';
+  'oauth-2025-04-20,claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14,context-management-2025-06-27';
 
 // Parse JSON request bodies with increased limit for large payloads
 app.use(express.json({ limit: '50mb' }));
@@ -294,6 +308,13 @@ const handleMessagesRequest = async (req: Request, res: Response) => {
       undefined,
       error instanceof Error ? error : new Error('Unknown error')
     );
+
+    // If headers already sent (e.g., during streaming), we can't send a JSON error
+    if (res.headersSent) {
+      logger.error(`[${requestId}] Error after headers sent:`, error);
+      res.end();
+      return;
+    }
 
     // Handle specific error cases
     if (error instanceof Error) {
@@ -443,6 +464,13 @@ const handleChatCompletionsRequest = async (req: Request, res: Response) => {
       error instanceof Error ? error : new Error('Unknown error'),
       'openai'
     );
+
+    // If headers already sent (e.g., during streaming), we can't send a JSON error
+    if (res.headersSent) {
+      logger.error(`[${requestId}] Error after headers sent:`, error);
+      res.end();
+      return;
+    }
 
     // Return OpenAI-format error
     const openaiError = translateAnthropicErrorToOpenAI(
